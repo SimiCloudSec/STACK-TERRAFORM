@@ -1,0 +1,18 @@
+# TERRAFORM
+.terraform/
+.terraform.lock.hcl
+
+# STATE FILES
+*.tfstate
+*.tfstate.backup
+
+# EXECUTABLES & PROVIDERS
+*.exe
+*.zip
+
+# SENSITIVE FILES
+terraform.tfvars
+
+# WINDOWS CRAP
+Thumbs.db
+desktop.ini
