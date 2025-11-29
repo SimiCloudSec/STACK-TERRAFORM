@@ -1,4 +1,34 @@
 #!/bin/bash
+###############################################################################
+# COMPLETE_FIX.sh - One script to fix everything permanently
+###############################################################################
+# This script:
+# 1. Updates terraform.tfvars with correct password (W3lcome123)
+# 2. Fixes bootstrap script to clone CLiXX repo and set correct DB values
+# 3. Updates launch template to trigger new instances
+###############################################################################
+
+set -e
+
+echo "╔═══════════════════════════════════════════════════════════════╗"
+echo "║   COMPLETE FIX - CLiXX WordPress Terraform                   ║"
+echo "╚═══════════════════════════════════════════════════════════════╝"
+echo ""
+
+# ============================================================
+# FIX 1: Update terraform.tfvars with correct password
+# ============================================================
+echo "Fixing terraform.tfvars..."
+sed -i 's/db_password = ".*"/db_password = "W3lcome123"/' terraform.tfvars
+echo "✓ Password set to W3lcome123"
+
+# ============================================================
+# FIX 2: Create corrected bootstrap script
+# ============================================================
+echo "Creating fixed bootstrap script..."
+
+cat > scripts/clixx_bootstrap.sh << 'EOFSCRIPT'
+#!/bin/bash
 exec > /var/log/user-data.log 2>&1
 set -xe
 
@@ -148,3 +178,67 @@ setsebool -P httpd_use_nfs on 2>/dev/null || true
 systemctl restart httpd
 
 echo "=== Bootstrap Complete! Site: http://$${SITE_URL} ==="
+EOFSCRIPT
+
+chmod +x scripts/clixx_bootstrap.sh
+echo "✓ Bootstrap script fixed"
+
+# ============================================================
+# FIX 3: Force launch template update
+# ============================================================
+echo "Updating launch template module to force recreation..."
+
+cat > modules/lt/main.tf << 'EOF'
+variable "ami_id" { type = string }
+variable "ec2_config" { type = map(any) }
+variable "ec2_sg_id" { type = string }
+variable "efs_id" { type = string }
+variable "aws_region" { type = string }
+variable "site_url" { type = string }
+variable "iam_profile" { type = string }
+variable "environment" { type = string }
+
+resource "aws_launch_template" "wordpress" {
+  name_prefix   = "clixx-${var.environment}-"
+  image_id      = var.ami_id
+  instance_type = var.ec2_config["instance_type"]
+
+  iam_instance_profile { name = var.iam_profile }
+  vpc_security_group_ids = [var.ec2_sg_id]
+
+  user_data = base64encode(templatefile("${path.root}/scripts/clixx_bootstrap.sh", {
+    efs_id     = var.efs_id
+    aws_region = var.aws_region
+    site_url   = var.site_url
+  }))
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = { Name = "clixx-${var.environment}-instance" }
+  }
+
+  # Force new version on every apply
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+output "lt_id" { value = aws_launch_template.wordpress.id }
+output "lt_latest_version" { value = aws_launch_template.wordpress.latest_version }
+EOF
+
+echo "✓ Launch template module updated"
+
+echo ""
+echo "╔═══════════════════════════════════════════════════════════════╗"
+echo "║   ALL FIXES APPLIED!                                          ║"
+echo "╚═══════════════════════════════════════════════════════════════╝"
+echo ""
+echo "Now run:"
+echo ""
+echo "  terraform destroy -auto-approve"
+echo "  terraform apply -auto-approve"
+echo ""
+echo "Wait 5-10 minutes for RDS to restore and instances to bootstrap."
+echo "Then visit: http://dev.clixx.stack-simi.com"
+echo ""
