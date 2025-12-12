@@ -1,10 +1,10 @@
 # =============================================================================
-# OUTPUTS - BLOG WordPress with Custom VPC
+# OUTPUTS - CLIXX WordPress with Custom VPC
 # =============================================================================
 
 output "wordpress_url" {
   description = "WordPress site URL"
-  value       = "http://${var.environment}.blog.${var.domain_name}"
+  value       = "http://${module.route53.fqdn}"
 }
 
 output "alb_dns_name" {
@@ -22,29 +22,25 @@ output "efs_id" {
   value       = module.efs.efs_id
 }
 
+# VPC Outputs
 output "vpc_id" {
   description = "Custom VPC ID"
   value       = aws_vpc.main.id
 }
 
 output "public_subnet_ids" {
-  description = "Public subnet IDs for ALB"
+  description = "Public subnet IDs"
   value       = local.public_subnet_ids
 }
 
 output "private_subnet_ids" {
-  description = "Private subnet IDs for EC2 RDS EFS"
+  description = "Private subnet IDs"
   value       = local.private_subnet_ids
 }
 
 output "nat_gateway_id" {
   description = "NAT Gateway ID"
   value       = aws_nat_gateway.main.id
-}
-
-output "internet_gateway_id" {
-  description = "Internet Gateway ID"
-  value       = aws_internet_gateway.main.id
 }
 
 output "public_nacl_id" {

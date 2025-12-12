@@ -1,10 +1,12 @@
-# =============================================================================
-# BLOG WordPress - Using Custom VPC
-# =============================================================================
+# ============================================================
+# MAIN TERRAFORM CONFIGURATION - BLOG WordPress Infrastructure
+# Author: Simi Talabi
+# ============================================================
 
+# Security Groups
 module "sg" {
   source        = "./modules/sg"
-  vpc_id        = aws_vpc.main.id
+  vpc_id        = data.aws_vpc.default.id
   environment   = var.environment
   sg_alb_config = var.sg_alb_config
   sg_ec2_config = var.sg_ec2_config
@@ -12,41 +14,47 @@ module "sg" {
   sg_efs_config = var.sg_efs_config
 }
 
+# EFS File System
 module "efs" {
   source      = "./modules/efs"
   environment = var.environment
-  subnet_ids  = local.private_subnet_ids
+  subnet_ids  = data.aws_subnets.default.ids
   efs_sg_id   = module.sg.efs_sg_id
   efs_config  = var.efs_config
 }
 
+# RDS Database (restored from snapshot)
 module "rds" {
   source      = "./modules/rds"
   environment = var.environment
-  subnet_ids  = local.private_subnet_ids
+  subnet_ids  = data.aws_subnets.default.ids
   rds_sg_id   = module.sg.rds_sg_id
   rds_config  = var.rds_config
 }
 
+# Key Pair
 module "keypair" {
   source      = "./modules/keypair"
   environment = var.environment
   key_name    = var.ec2_config.key_name
 }
 
+# Application Load Balancer
 module "alb" {
   source      = "./modules/alb"
   environment = var.environment
-  subnet_ids  = local.public_subnet_ids
+  subnet_ids  = data.aws_subnets.default.ids
   alb_sg_id   = module.sg.alb_sg_id
 }
 
+# Target Group
 module "tg" {
   source      = "./modules/tg"
   environment = var.environment
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
 }
 
+# Launch Template
 module "lt" {
   source      = "./modules/lt"
   environment = var.environment
@@ -62,15 +70,17 @@ module "lt" {
   site_url    = "${var.environment}.blog.${var.domain_name}"
 }
 
+# Auto Scaling Group
 module "asg" {
   source             = "./modules/asg"
   environment        = var.environment
-  subnet_ids         = local.private_subnet_ids
+  subnet_ids         = data.aws_subnets.default.ids
   target_group_arn   = module.tg.tg_arn
   launch_template_id = module.lt.lt_id
   asg_config         = var.asg_config
 }
 
+# Route53 DNS
 module "route53" {
   source         = "./modules/route53"
   environment    = var.environment
@@ -80,6 +90,7 @@ module "route53" {
   alb_zone_id    = module.alb.alb_zone_id
 }
 
+# ALB HTTP Listener
 resource "aws_lb_listener" "blog_http" {
   load_balancer_arn = module.alb.alb_arn
   port              = 80

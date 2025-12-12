@@ -1,0 +1,52 @@
+# ============================================================
+# DATA SOURCES - BLOG WordPress Infrastructure
+# ============================================================
+
+# Get default VPC
+data "aws_vpc" "default" {
+  default = true
+}
+
+# Get subnets in default VPC (exclude us-east-1e - no t4g support)
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+
+  filter {
+    name   = "availability-zone"
+    values = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1f"]
+  }
+}
+
+# Get availability zones (exclude us-east-1e)
+data "aws_availability_zones" "available" {
+  state = "available"
+
+  filter {
+    name   = "zone-name"
+    values = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1f"]
+  }
+}
+
+# Get latest Amazon Linux 2023 ARM AMI
+data "aws_ami" "amazon_linux_2023_arm" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-arm64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+}

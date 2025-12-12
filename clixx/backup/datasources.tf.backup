@@ -1,5 +1,5 @@
 # =============================================================================
-# DATA SOURCES - CLIXX (Custom VPC defined in vpc.tf)
+# DATA SOURCES - CLIXX (Using Custom VPC from vpc.tf)
 # =============================================================================
 
 data "aws_ami" "amazon_linux_2023" {

@@ -1,7 +1,7 @@
 variable "vpc_id" { type = string }
 variable "ec2_sg_id" { type = string }
 variable "environment" { type = string }
-variable "sg_efs_config" {
+variable "sg_rds_config" {
   type = map(object({
     description = string
     from_port   = number
@@ -10,13 +10,13 @@ variable "sg_efs_config" {
   }))
 }
 
-resource "aws_security_group" "efs_sg" {
-  name        = "clixx-${var.environment}-efs-sg"
-  description = "EFS Security Group"
+resource "aws_security_group" "rds_sg" {
+  name        = "clixx-${var.environment}-rds-sg"
+  description = "RDS Security Group"
   vpc_id      = var.vpc_id
 
   dynamic "ingress" {
-    for_each = var.sg_efs_config
+    for_each = var.sg_rds_config
     content {
       description     = ingress.value.description
       from_port       = ingress.value.from_port
@@ -33,7 +33,7 @@ resource "aws_security_group" "efs_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { Name = "clixx-${var.environment}-efs-sg" }
+  tags = { Name = "clixx-${var.environment}-rds-sg" }
 }
 
-output "sg_id" { value = aws_security_group.efs_sg.id }
+output "sg_id" { value = aws_security_group.rds_sg.id }
