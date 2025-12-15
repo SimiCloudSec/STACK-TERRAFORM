@@ -10,12 +10,10 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-
   assume_role {
     role_arn     = "arn:aws:iam::${var.dev_account_id}:role/${var.assume_role_name}"
     session_name = "TerraformCLiXXDeployment"
   }
-
   default_tags {
     tags = {
       Environment = var.environment
@@ -28,4 +26,8 @@ provider "aws" {
 provider "aws" {
   alias  = "route53"
   region = var.aws_region
+  assume_role {
+    role_arn     = "arn:aws:iam::227764537934:role/Route53Access"
+    session_name = "TerraformRoute53"
+  }
 }
