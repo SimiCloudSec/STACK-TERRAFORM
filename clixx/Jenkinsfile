@@ -1,17 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-// CLIXX INFRASTRUCTURE PIPELINE
-//
-// This pipeline:
-//   1. Checks out code from GitHub
-//   2. Builds AMI with Packer (optional)
-//   3. Runs Terraform init
-//   4. Runs Terraform plan
-//   5. Waits for manual approval
-//   6. Runs Terraform apply or destroy
-//
-// Matches the format your classmates are using!
-///////////////////////////////////////////////////////////////////////////////
-
 pipeline {
     agent any
 
@@ -27,66 +13,25 @@ pipeline {
             description: 'Target environment'
         )
         booleanParam(
-            name: 'BUILD_AMI',
-            defaultValue: false,
-            description: 'Build new AMI with Packer before deploying?'
-        )
-        booleanParam(
             name: 'AUTO_APPROVE',
             defaultValue: false,
-            description: 'Skip manual approval? (Use with caution!)'
+            description: 'Skip manual approval?'
         )
     }
 
     environment {
-        AWS_REGION         = 'us-east-1'
-        TF_VAR_environment = "${params.ENVIRONMENT}"
-        GITHUB_REPO        = 'https://github.com/SimiCloudSec/STACK-TERRAFORM.git'
+        AWS_REGION = 'us-east-1'
     }
 
     stages {
-        //---------------------------------------------------------------------
-        // STAGE 1: Checkout Code
-        //---------------------------------------------------------------------
         stage('Checkout') {
             steps {
-                echo "Checking out code from ${env.GITHUB_REPO}..."
-                git branch: 'main',
-                    url: env.GITHUB_REPO
+                checkout scm
             }
         }
 
-        //---------------------------------------------------------------------
-        // STAGE 2: Packer Build (Optional)
-        //---------------------------------------------------------------------
-        stage('Packer Build') {
-            when {
-                expression { params.BUILD_AMI == true }
-            }
-            steps {
-                echo "STARTING PACKER IMAGE BUILD..."
-                dir('packer') {
-                    sh '''
-                        packer init .
-                        packer validate .
-                        packer build -var "environment=${ENVIRONMENT}" clixx.pkr.hcl
-                    '''
-                }
-                echo "Packer build complete!"
-            }
-        }
-
-        //---------------------------------------------------------------------
-        // STAGE 3: Terraform Init
-        //---------------------------------------------------------------------
         stage('Terraform Init') {
             steps {
-                echo "STARTED: CLIXX Infrastructure"
-                echo "Job: ${env.JOB_NAME}"
-                echo "Build: #${env.BUILD_NUMBER}"
-                echo "Environment: ${params.ENVIRONMENT}"
-                echo "Action: ${params.ACTION}"
-                
                 dir('clixx') {
                     sh 'terraform init -input=false'
                 }
@@ -94,9 +39,6 @@ pipeline {
             }
         }
 
-        //---------------------------------------------------------------------
-        // STAGE 4: Terraform Plan
-        //---------------------------------------------------------------------
         stage('Terraform Plan') {
             steps {
                 dir('clixx') {
@@ -112,59 +54,31 @@ pipeline {
             }
         }
 
-        //---------------------------------------------------------------------
-        // STAGE 5: Manual Approval
-        //---------------------------------------------------------------------
         stage('Approval') {
             when {
                 expression { params.AUTO_APPROVE == false }
             }
             steps {
-                echo "APPROVAL REQUIRED"
-                echo "Job: ${env.JOB_NAME}"
-                echo "Build: #${env.BUILD_NUMBER}"
-                echo "Environment: ${params.ENVIRONMENT}"
-                echo "Action: ${params.ACTION}"
-                echo "Review the plan and approve to proceed with deployment"
-                
-                input message: "Review the Terraform plan. Proceed with ${params.ACTION}?",
-                      ok: "Approve"
+                input message: "Proceed with ${params.ACTION}?", ok: "Approve"
             }
         }
 
-        //---------------------------------------------------------------------
-        // STAGE 6: Terraform Apply/Destroy
-        //---------------------------------------------------------------------
         stage('Terraform Apply') {
             steps {
                 dir('clixx') {
                     sh 'terraform apply -auto-approve tfplan'
                 }
-                echo "SUCCESS: CLIXX Infrastructure"
-                echo "Job: ${env.JOB_NAME}"
-                echo "Build: #${env.BUILD_NUMBER}"
-                echo "Environment: ${params.ENVIRONMENT}"
-                echo "Action: ${params.ACTION}"
+                echo "SUCCESS: CLIXX Infrastructure - ${params.ACTION}"
             }
         }
     }
 
-    //-------------------------------------------------------------------------
-    // POST-BUILD ACTIONS
-    //-------------------------------------------------------------------------
     post {
         success {
             echo "Pipeline completed successfully!"
-            echo "Duration: ${currentBuild.durationString}"
         }
         failure {
             echo "PIPELINE FAILED"
-            echo "Job: ${env.JOB_NAME}"
-            echo "Build: #${env.BUILD_NUMBER}"
-        }
-        always {
-            // Clean up workspace
-            cleanWs()
         }
     }
 }
