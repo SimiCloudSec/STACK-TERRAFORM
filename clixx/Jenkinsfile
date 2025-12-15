@@ -87,7 +87,7 @@ pipeline {
                 echo "Environment: ${params.ENVIRONMENT}"
                 echo "Action: ${params.ACTION}"
                 
-                dir('terraform') {
+                dir('clixx') {
                     sh 'terraform init -input=false'
                 }
                 echo "Terraform Init: SUCCESS"
@@ -99,7 +99,7 @@ pipeline {
         //---------------------------------------------------------------------
         stage('Terraform Plan') {
             steps {
-                dir('terraform') {
+                dir('clixx') {
                     script {
                         if (params.ACTION == 'destroy') {
                             sh 'terraform plan -destroy -out=tfplan -input=false'
@@ -137,7 +137,7 @@ pipeline {
         //---------------------------------------------------------------------
         stage('Terraform Apply') {
             steps {
-                dir('terraform') {
+                dir('clixx') {
                     sh 'terraform apply -auto-approve tfplan'
                 }
                 echo "SUCCESS: CLIXX Infrastructure"
