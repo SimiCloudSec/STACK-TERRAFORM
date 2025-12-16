@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Terraform action')
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Environment')
+        booleanParam(name: 'AUTO_APPROVE', defaultValue: false, description: 'Skip approval')
+    }
+
+    environment {
+        TF_IN_AUTOMATION = 'true'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('blog') {
+                    sh 'terraform init -input=false'
+                }
+                echo "Terraform Init: SUCCESS"
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('blog') {
+                    script {
+                        if (params.ACTION == 'destroy') {
+                            sh 'terraform plan -destroy -out=tfplan -input=false'
+                        } else {
+                            sh 'terraform plan -out=tfplan -input=false'
+                        }
+                    }
+                }
+                echo "Terraform Plan: COMPLETE - Ready for approval"
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('blog') {
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'PIPELINE SUCCEEDED'
+        }
+        failure {
+            echo 'PIPELINE FAILED'
+        }
+    }
+}
