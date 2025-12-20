@@ -1,39 +1,27 @@
 pipeline {
     agent any
-//  parameters {
-//   credentials credentialType: 'com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsImpl', defaultValue: 'AWS_CREDS_AUTOMATION_ACCT', name: 'AWS_AUTOMATION_ACCOUNT_CRED', required: false
-// }
-
     environment {
         AMI_ID="stack-ami-${BUILD_NUMBER}"
     }
-    stages{
-
-         stage('Initial Stage') {
-              steps {
+    stages {
+        stage('Initial Stage') {
+            steps {
                 script {
-                def userInput = input(id: 'confirm', message: 'Start Pipeline?', parameters: [ [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Start Pipeline', name: 'confirm'] ])
-             }
-           }
+                    def userInput = input(id: 'confirm', message: 'Start Pipeline?', parameters: [ [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Start Pipeline', name: 'confirm'] ])
+                }
+            }
         }
-
-        stage('Packer AMI Build'){
-             steps {
-                 sh '''
-                 cd images
-                 sed -i "s/ami-stack-'[0-9]*$'/'${AMI_ID}'/" ./image.pkr.hcl 
-                 export PACKER_LOG=1
-                 export PACKER_LOG_PATH=$WORKSPACE/packer.log
-                 /usr/bin/packer build -force image.pkr.hcl 
-                 '''
-               
-         }
-         }
-
-   
-
-
-       
-        
+        stage('Packer AMI Build') {
+            steps {
+                sh '''
+                    cd images
+                    sed -i "s/ami-stack-[0-9]*/ami-stack-${BUILD_NUMBER}/" ./image.pkr.hcl
+                    export PACKER_LOG=1
+                    export PACKER_LOG_PATH=$WORKSPACE/packer.log
+                    /usr/bin/packer init image.pkr.hcl
+                    /usr/bin/packer build -force image.pkr.hcl
+                '''
+            }
+        }
     }
 }
