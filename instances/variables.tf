@@ -1,12 +1,3 @@
-# variable "cidr_vpc" {
-#   description = "CIDR block for the VPC"
-#   default     = "10.1.0.0/16"
-# }
-# variable "cidr_subnet" {
-#   description = "CIDR block for the subnet"
-#   default     = "10.1.0.0/24"
-# }
-
 variable "environment_tag" {
   description = "Environment tag"
   default     = "Learn"
@@ -18,15 +9,15 @@ variable "region"{
 }
 
 variable "vpc_id"{
-    default="vpc-0befa9f9ff5d3b888"
+  default = "vpc-0ffbc2e00e12373e5"
 }
 
 variable "subnets" {
   type = list(string)
-  default=[
-    "subnet-0a029f0722b30551b",
-    "subnet-0f809518c9e33b8d3",
-   ]
+  default = [
+    "subnet-036a2bcbf3c1dc87f",
+    "subnet-0e54a7b9c296556cb",
+  ]
 }
 
 variable "PATH_TO_PUBLIC_KEY" {
@@ -34,5 +25,5 @@ variable "PATH_TO_PUBLIC_KEY" {
 }
 
 variable "ami_name" {
-  default = "ami-stack-51"
+  default = "ami-stack-1"
 }

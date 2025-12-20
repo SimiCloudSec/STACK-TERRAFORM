@@ -96,7 +96,7 @@ data "aws_ami" "stack" {
 
   filter {
     name   = "name"
-    values = ["ami-stack-51"]
+    values = ["ami-stack-1"]
   }
 }
 resource "aws_instance" "application_server" {
