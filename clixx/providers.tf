@@ -24,6 +24,6 @@ provider "aws" {
   region = var.aws_region
   
   assume_role {
-    role_arn = "arn:aws:iam::227764537934:role/Engineer"
+    role_arn = "arn:aws:iam::227764537934:role/Route53Access"
   }
 }
