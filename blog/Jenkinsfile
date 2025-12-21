@@ -3,17 +3,13 @@ pipeline {
 
     parameters {
         choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Terraform action')
-        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Environment')
         booleanParam(name: 'AUTO_APPROVE', defaultValue: false, description: 'Skip approval')
-    }
-
-    environment {
-        TF_IN_AUTOMATION = 'true'
     }
 
     stages {
         stage('Checkout') {
             steps {
+                slackSend(color: '#FFFF00', message: ":nigeria: Simi - :rocket: STARTING BLOG DEPLOYMENT [${env.BUILD_NUMBER}]")
                 checkout scm
             }
         }
@@ -23,7 +19,6 @@ pipeline {
                 dir('blog') {
                     sh 'terraform init -input=false'
                 }
-                echo "Terraform Init: SUCCESS"
             }
         }
 
@@ -33,12 +28,23 @@ pipeline {
                     script {
                         if (params.ACTION == 'destroy') {
                             sh 'terraform plan -destroy -out=tfplan -input=false'
+                            slackSend(color: '#FF0000', message: ":nigeria: Simi - :fire: DESTROY PLAN READY - BLOG [${env.BUILD_NUMBER}]")
                         } else {
                             sh 'terraform plan -out=tfplan -input=false'
+                            slackSend(color: '#FFFF00', message: ":nigeria: Simi - :clipboard: APPLY PLAN READY - BLOG [${env.BUILD_NUMBER}]")
                         }
                     }
                 }
-                echo "Terraform Plan: COMPLETE - Ready for approval"
+            }
+        }
+
+        stage('Approval') {
+            when {
+                expression { return !params.AUTO_APPROVE }
+            }
+            steps {
+                slackSend(color: '#FFFF00', message: ":nigeria: Simi - :hourglass: WAITING FOR APPROVAL - BLOG [${env.BUILD_NUMBER}]")
+                input message: "Proceed with ${params.ACTION}?", ok: "Approve"
             }
         }
 
@@ -53,10 +59,10 @@ pipeline {
 
     post {
         success {
-            echo 'PIPELINE SUCCEEDED'
+            slackSend(color: '#00FF00', message: ":nigeria: Simi - :white_check_mark: BLOG ${params.ACTION.toUpperCase()} SUCCESS [${env.BUILD_NUMBER}]")
         }
         failure {
-            echo 'PIPELINE FAILED'
+            slackSend(color: '#FF0000', message: ":nigeria: Simi - :x: BLOG ${params.ACTION.toUpperCase()} FAILED [${env.BUILD_NUMBER}]")
         }
     }
 }

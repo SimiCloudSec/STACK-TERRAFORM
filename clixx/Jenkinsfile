@@ -2,30 +2,14 @@ pipeline {
     agent any
 
     parameters {
-        choice(
-            name: 'ACTION',
-            choices: ['apply', 'destroy'],
-            description: 'Terraform action to perform'
-        )
-        choice(
-            name: 'ENVIRONMENT',
-            choices: ['dev', 'staging', 'prod'],
-            description: 'Target environment'
-        )
-        booleanParam(
-            name: 'AUTO_APPROVE',
-            defaultValue: false,
-            description: 'Skip manual approval?'
-        )
-    }
-
-    environment {
-        AWS_REGION = 'us-east-1'
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Terraform action')
+        booleanParam(name: 'AUTO_APPROVE', defaultValue: false, description: 'Skip approval')
     }
 
     stages {
         stage('Checkout') {
             steps {
+                slackSend(color: '#FFFF00', message: ":nigeria: Simi - :rocket: STARTING CLIXX DEPLOYMENT [${env.BUILD_NUMBER}]")
                 checkout scm
             }
         }
@@ -35,7 +19,6 @@ pipeline {
                 dir('clixx') {
                     sh 'terraform init -input=false'
                 }
-                echo "Terraform Init: SUCCESS"
             }
         }
 
@@ -45,20 +28,22 @@ pipeline {
                     script {
                         if (params.ACTION == 'destroy') {
                             sh 'terraform plan -destroy -out=tfplan -input=false'
+                            slackSend(color: '#FF0000', message: ":nigeria: Simi - :fire: DESTROY PLAN READY - CLIXX [${env.BUILD_NUMBER}]")
                         } else {
                             sh 'terraform plan -out=tfplan -input=false'
+                            slackSend(color: '#FFFF00', message: ":nigeria: Simi - :clipboard: APPLY PLAN READY - CLIXX [${env.BUILD_NUMBER}]")
                         }
                     }
                 }
-                echo "Terraform Plan: COMPLETE - Ready for approval"
             }
         }
 
         stage('Approval') {
             when {
-                expression { params.AUTO_APPROVE == false }
+                expression { return !params.AUTO_APPROVE }
             }
             steps {
+                slackSend(color: '#FFFF00', message: ":nigeria: Simi - :hourglass: WAITING FOR APPROVAL - CLIXX [${env.BUILD_NUMBER}]")
                 input message: "Proceed with ${params.ACTION}?", ok: "Approve"
             }
         }
@@ -68,17 +53,16 @@ pipeline {
                 dir('clixx') {
                     sh 'terraform apply -auto-approve tfplan'
                 }
-                echo "SUCCESS: CLIXX Infrastructure - ${params.ACTION}"
             }
         }
     }
 
     post {
         success {
-            echo "Pipeline completed successfully!"
+            slackSend(color: '#00FF00', message: ":nigeria: Simi - :white_check_mark: CLIXX ${params.ACTION.toUpperCase()} SUCCESS [${env.BUILD_NUMBER}]")
         }
         failure {
-            echo "PIPELINE FAILED"
+            slackSend(color: '#FF0000', message: ":nigeria: Simi - :x: CLIXX ${params.ACTION.toUpperCase()} FAILED [${env.BUILD_NUMBER}]")
         }
     }
 }
