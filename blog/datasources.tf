@@ -1,23 +1,15 @@
 # =============================================================================
-# DATA SOURCES - BLOG
+# DATA SOURCES - BLOG (Using Golden AMI from Packer)
 # =============================================================================
-
-data "aws_ami" "amazon_linux_2023_arm" {
+data "aws_ami" "golden_ami" {
   most_recent = true
-  owners      = ["amazon"]
-
+  owners      = ["self"]
   filter {
     name   = "name"
-    values = ["al2023-ami-*-arm64"]
+    values = ["stack-ami-*"]
   }
-
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
-  }
-
-  filter {
-    name   = "root-device-type"
-    values = ["ebs"]
   }
 }

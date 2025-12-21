@@ -1,3 +1,8 @@
+# =============================================================================
+# TERRAFORM VARIABLES - CliXX WordPress
+# Author: Simi Talabi
+# =============================================================================
+
 aws_region            = "us-east-1"
 management_account_id = "227764537934"
 dev_account_id        = "289390529512"
@@ -35,70 +40,5 @@ rds_config = {
   publicly_accessible = false
 }
 
-sg_alb_config = {
-  http = {
-    description = "HTTP from anywhere"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  https = {
-    description = "HTTPS from anywhere"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-sg_ec2_config = {
-  ssh = {
-    description = "SSH access"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-sg_rds_config = {
-  mysql = {
-    description = "MySQL from EC2"
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-  }
-}
-
-sg_efs_config = {
-  nfs = {
-    description = "NFS from EC2"
-    from_port   = 2049
-    to_port     = 2049
-    protocol    = "tcp"
-  }
-}
-
-efs_config = {
-  encrypted       = true
-  throughput_mode = "bursting"
-}
-
-ssm_parameters = {
-  db_name = "/clixx/DB_NAME"
-  db_user = "/clixx/DB_USER"
-  db_pass = "/clixx/DB_PASS"
-  db_host = "/clixx/DB_HOST"
-}
-
 domain_name    = "stack-simi.com"
 hosted_zone_id = "Z069777410G7QIT8P199L"
-
-# =============================================================================
-# VPC CONFIGURATION (Custom VPC - matches AWS VPC Lab)
-# =============================================================================
-vpc_cidr             = "10.0.0.0/16"
-public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
-availability_zones   = ["us-east-1a", "us-east-1b", "us-east-1c"]

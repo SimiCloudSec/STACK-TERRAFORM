@@ -50,7 +50,7 @@ module "tg" {
 module "lt" {
   source      = "./modules/lt"
   environment = var.environment
-  ami_id      = data.aws_ami.amazon_linux_2023_arm.id
+  ami_id      = data.aws_ami.golden_ami.id
   ec2_config  = var.ec2_config
   ec2_sg_id   = module.sg.ec2_sg_id
   key_name    = module.keypair.key_name

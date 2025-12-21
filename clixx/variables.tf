@@ -1,3 +1,8 @@
+# =============================================================================
+# VARIABLES - CliXX WordPress
+# Author: Simi Talabi
+# =============================================================================
+
 variable "aws_region" {
   description = "AWS region"
   type        = string
@@ -13,7 +18,7 @@ variable "management_account_id" {
 variable "dev_account_id" {
   description = "Dev AWS account ID"
   type        = string
-  default     = "195524911187"
+  default     = "289390529512"
 }
 
 variable "assume_role_name" {
@@ -49,7 +54,7 @@ variable "db_password" {
 variable "snapshot_identifier" {
   description = "RDS snapshot ARN to restore from"
   type        = string
-  default     = "arn:aws:rds:us-east-1:195524911187:snapshot:clixxwordpressdb"
+  default     = "arn:aws:rds:us-east-1:289390529512:snapshot:clixxwordpressdb"
 }
 
 variable "ec2_config" {
@@ -90,109 +95,6 @@ variable "rds_config" {
   }
 }
 
-variable "sg_alb_config" {
-  description = "ALB security group rules"
-  type = map(object({
-    description = string
-    from_port   = number
-    to_port     = number
-    protocol    = string
-    cidr_blocks = list(string)
-  }))
-  default = {
-    http = {
-      description = "HTTP from anywhere"
-      from_port   = 80
-      to_port     = 80
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-    https = {
-      description = "HTTPS from anywhere"
-      from_port   = 443
-      to_port     = 443
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-}
-
-variable "sg_ec2_config" {
-  description = "EC2 security group rules"
-  type = map(object({
-    description = string
-    from_port   = number
-    to_port     = number
-    protocol    = string
-    cidr_blocks = list(string)
-  }))
-  default = {
-    ssh = {
-      description = "SSH access"
-      from_port   = 22
-      to_port     = 22
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-}
-
-variable "sg_rds_config" {
-  description = "RDS security group rules"
-  type = map(object({
-    description = string
-    from_port   = number
-    to_port     = number
-    protocol    = string
-  }))
-  default = {
-    mysql = {
-      description = "MySQL from EC2"
-      from_port   = 3306
-      to_port     = 3306
-      protocol    = "tcp"
-    }
-  }
-}
-
-variable "sg_efs_config" {
-  description = "EFS security group rules"
-  type = map(object({
-    description = string
-    from_port   = number
-    to_port     = number
-    protocol    = string
-  }))
-  default = {
-    nfs = {
-      description = "NFS from EC2"
-      from_port   = 2049
-      to_port     = 2049
-      protocol    = "tcp"
-    }
-  }
-}
-
-variable "efs_config" {
-  description = "EFS configuration"
-  type        = map(any)
-  default = {
-    encrypted       = true
-    throughput_mode = "bursting"
-  }
-}
-
-variable "ssm_parameters" {
-  description = "SSM parameter paths"
-  type        = map(string)
-  default = {
-    db_name = "/clixx/DB_NAME"
-    db_user = "/clixx/DB_USER"
-    db_pass = "/clixx/DB_PASS"
-    db_host = "/clixx/DB_HOST"
-  }
-}
-
 variable "domain_name" {
   description = "Domain name"
   type        = string
@@ -205,19 +107,6 @@ variable "hosted_zone_id" {
   default     = "Z069777410G7QIT8P199L"
 }
 
-# =============================================================================
-# =============================================================================
-
-
-
-
-
-# =============================================================================
-# =============================================================================
-
-# =============================================================================
-# VPC CONFIGURATION (Custom VPC - matches AWS VPC Lab)
-# =============================================================================
 variable "vpc_cidr" {
   description = "VPC CIDR block"
   type        = string
@@ -227,17 +116,17 @@ variable "vpc_cidr" {
 variable "public_subnet_cidrs" {
   description = "Public subnet CIDR blocks"
   type        = list(string)
-  default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
 variable "private_subnet_cidrs" {
   description = "Private subnet CIDR blocks"
   type        = list(string)
-  default     = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
+  default     = ["10.0.11.0/24", "10.0.12.0/24"]
 }
 
 variable "availability_zones" {
   description = "Availability zones"
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  default     = ["us-east-1a", "us-east-1b"]
 }

@@ -1,69 +1,116 @@
 # =============================================================================
-# VPC.TF - Custom VPC Infrastructure
+# VPC.TF - CliXX Enterprise VPC (12 Subnets)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# VPC
+# LOCALS - Maps new subnet names to what main.tf expects
 # -----------------------------------------------------------------------------
+locals {
+  public_subnet_ids  = aws_subnet.public[*].id
+  private_subnet_ids = aws_subnet.private_webapp[*].id
+}
+
+# VPC
 resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
+  cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
   tags = { Name = "clixx-${var.environment}-vpc" }
 }
 
-# -----------------------------------------------------------------------------
-# INTERNET GATEWAY
-# -----------------------------------------------------------------------------
+# Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags   = { Name = "clixx-${var.environment}-igw" }
 }
 
 # -----------------------------------------------------------------------------
-# PUBLIC SUBNETS (for ALB)
+# PUBLIC SUBNETS (2) - 450 hosts each
 # -----------------------------------------------------------------------------
 resource "aws_subnet" "public" {
-  count                   = length(var.public_subnet_cidrs)
+  count                   = 2
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidrs[count.index]
-  availability_zone       = var.availability_zones[count.index]
+  cidr_block              = element(["10.0.0.0/23", "10.0.2.0/23"], count.index)
+  availability_zone       = element(["us-east-1a", "us-east-1b"], count.index)
   map_public_ip_on_launch = true
   tags = { Name = "clixx-${var.environment}-public-${count.index + 1}" }
 }
 
 # -----------------------------------------------------------------------------
-# PRIVATE SUBNETS (for EC2, RDS, EFS)
+# PRIVATE SUBNETS - WEB APP (2) - 250 hosts each
 # -----------------------------------------------------------------------------
-resource "aws_subnet" "private" {
-  count             = length(var.private_subnet_cidrs)
+resource "aws_subnet" "private_webapp" {
+  count             = 2
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidrs[count.index]
-  availability_zone = var.availability_zones[count.index]
-  tags = { Name = "clixx-${var.environment}-private-${count.index + 1}" }
+  cidr_block        = element(["10.0.4.0/24", "10.0.5.0/24"], count.index)
+  availability_zone = element(["us-east-1a", "us-east-1b"], count.index)
+  tags = { Name = "clixx-${var.environment}-private-webapp-${count.index + 1}" }
 }
 
 # -----------------------------------------------------------------------------
-# ELASTIC IP FOR NAT GATEWAY
+# PRIVATE SUBNETS - MYSQL RDS (2) - 680 hosts each
+# -----------------------------------------------------------------------------
+resource "aws_subnet" "private_mysql" {
+  count             = 2
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = element(["10.0.8.0/22", "10.0.12.0/22"], count.index)
+  availability_zone = element(["us-east-1a", "us-east-1b"], count.index)
+  tags = { Name = "clixx-${var.environment}-private-mysql-${count.index + 1}" }
+}
+
+# -----------------------------------------------------------------------------
+# PRIVATE SUBNETS - ORACLE (2) - 254 hosts each
+# -----------------------------------------------------------------------------
+resource "aws_subnet" "private_oracle" {
+  count             = 2
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = element(["10.0.16.0/24", "10.0.17.0/24"], count.index)
+  availability_zone = element(["us-east-1a", "us-east-1b"], count.index)
+  tags = { Name = "clixx-${var.environment}-private-oracle-${count.index + 1}" }
+}
+
+# -----------------------------------------------------------------------------
+# PRIVATE SUBNETS - JAVA DB (2) - 50 hosts each
+# -----------------------------------------------------------------------------
+resource "aws_subnet" "private_javadb" {
+  count             = 2
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = element(["10.0.18.0/26", "10.0.18.64/26"], count.index)
+  availability_zone = element(["us-east-1a", "us-east-1b"], count.index)
+  tags = { Name = "clixx-${var.environment}-private-javadb-${count.index + 1}" }
+}
+
+# -----------------------------------------------------------------------------
+# PRIVATE SUBNETS - JAVA APP / TOMCAT (2) - 50 hosts each
+# -----------------------------------------------------------------------------
+resource "aws_subnet" "private_javaapp" {
+  count             = 2
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = element(["10.0.18.128/26", "10.0.18.192/26"], count.index)
+  availability_zone = element(["us-east-1a", "us-east-1b"], count.index)
+  tags = { Name = "clixx-${var.environment}-private-javaapp-${count.index + 1}" }
+}
+
+# -----------------------------------------------------------------------------
+# NAT GATEWAYS (2 - one per AZ for HA)
 # -----------------------------------------------------------------------------
 resource "aws_eip" "nat" {
-  domain     = "vpc"
-  tags       = { Name = "clixx-${var.environment}-nat-eip" }
+  count  = 2
+  domain = "vpc"
+  tags   = { Name = "clixx-${var.environment}-nat-eip-${count.index + 1}" }
   depends_on = [aws_internet_gateway.main]
 }
 
-# -----------------------------------------------------------------------------
-# NAT GATEWAY (in first public subnet)
-# -----------------------------------------------------------------------------
 resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-  tags          = { Name = "clixx-${var.environment}-nat-gw" }
+  count         = 2
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+  tags          = { Name = "clixx-${var.environment}-nat-gw-${count.index + 1}" }
   depends_on    = [aws_internet_gateway.main]
 }
 
 # -----------------------------------------------------------------------------
-# PUBLIC ROUTE TABLE (routes to Internet Gateway)
+# ROUTE TABLES
 # -----------------------------------------------------------------------------
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
@@ -75,245 +122,68 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table_association" "public" {
-  count          = length(var.public_subnet_cidrs)
+  count          = 2
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
 }
 
-# -----------------------------------------------------------------------------
-# PRIVATE ROUTE TABLE (routes to NAT Gateway)
-# -----------------------------------------------------------------------------
 resource "aws_route_table" "private" {
+  count  = 2
   vpc_id = aws_vpc.main.id
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
+    nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
-  tags = { Name = "clixx-${var.environment}-private-rt" }
+  tags = { Name = "clixx-${var.environment}-private-rt-${count.index + 1}" }
 }
 
-resource "aws_route_table_association" "private" {
-  count          = length(var.private_subnet_cidrs)
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
+resource "aws_route_table_association" "private_webapp" {
+  count          = 2
+  subnet_id      = aws_subnet.private_webapp[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
-# -----------------------------------------------------------------------------
-# PUBLIC NACL
-# -----------------------------------------------------------------------------
-resource "aws_network_acl" "public" {
-  vpc_id     = aws_vpc.main.id
-  subnet_ids = aws_subnet.public[*].id
+resource "aws_route_table_association" "private_mysql" {
+  count          = 2
+  subnet_id      = aws_subnet.private_mysql[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
+}
 
-  # Inbound Rules
-  ingress {
-    rule_no    = 100
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 22
-    to_port    = 22
-    cidr_block = "0.0.0.0/0"
-  }
-  ingress {
-    rule_no    = 200
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 80
-    to_port    = 80
-    cidr_block = "0.0.0.0/0"
-  }
-  ingress {
-    rule_no    = 300
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 443
-    to_port    = 443
-    cidr_block = "0.0.0.0/0"
-  }
-  ingress {
-    rule_no    = 400
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 1024
-    to_port    = 65535
-    cidr_block = "0.0.0.0/0"
-  }
-  ingress {
-    rule_no    = 500
-    action     = "allow"
-    protocol   = "icmp"
-    from_port  = 0
-    to_port    = 0
-    icmp_type  = -1
-    icmp_code  = -1
-    cidr_block = "0.0.0.0/0"
-  }
+resource "aws_route_table_association" "private_oracle" {
+  count          = 2
+  subnet_id      = aws_subnet.private_oracle[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
+}
 
-  # Outbound Rules
-  egress {
-    rule_no    = 100
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 80
-    to_port    = 80
-    cidr_block = "0.0.0.0/0"
-  }
-  egress {
-    rule_no    = 200
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 443
-    to_port    = 443
-    cidr_block = "0.0.0.0/0"
-  }
-  egress {
-    rule_no    = 300
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 1024
-    to_port    = 65535
-    cidr_block = "0.0.0.0/0"
-  }
-  egress {
-    rule_no    = 400
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 22
-    to_port    = 22
-    cidr_block = var.vpc_cidr
-  }
-  egress {
-    rule_no    = 500
-    action     = "allow"
-    protocol   = "icmp"
-    from_port  = 0
-    to_port    = 0
-    icmp_type  = -1
-    icmp_code  = -1
-    cidr_block = "0.0.0.0/0"
-  }
+resource "aws_route_table_association" "private_javadb" {
+  count          = 2
+  subnet_id      = aws_subnet.private_javadb[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
+}
 
-  tags = { Name = "clixx-${var.environment}-public-nacl" }
+resource "aws_route_table_association" "private_javaapp" {
+  count          = 2
+  subnet_id      = aws_subnet.private_javaapp[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 # -----------------------------------------------------------------------------
-# PRIVATE NACL
+# DB SUBNET GROUPS
 # -----------------------------------------------------------------------------
-resource "aws_network_acl" "private" {
-  vpc_id     = aws_vpc.main.id
-  subnet_ids = aws_subnet.private[*].id
-
-  # Inbound Rules
-  ingress {
-    rule_no    = 100
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 22
-    to_port    = 22
-    cidr_block = var.vpc_cidr
-  }
-  ingress {
-    rule_no    = 200
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 80
-    to_port    = 80
-    cidr_block = var.vpc_cidr
-  }
-  ingress {
-    rule_no    = 300
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 3306
-    to_port    = 3306
-    cidr_block = var.vpc_cidr
-  }
-  ingress {
-    rule_no    = 400
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 2049
-    to_port    = 2049
-    cidr_block = var.vpc_cidr
-  }
-  ingress {
-    rule_no    = 500
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 1024
-    to_port    = 65535
-    cidr_block = "0.0.0.0/0"
-  }
-  ingress {
-    rule_no    = 600
-    action     = "allow"
-    protocol   = "icmp"
-    from_port  = 0
-    to_port    = 0
-    icmp_type  = -1
-    icmp_code  = -1
-    cidr_block = var.vpc_cidr
-  }
-
-  # Outbound Rules
-  egress {
-    rule_no    = 100
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 80
-    to_port    = 80
-    cidr_block = "0.0.0.0/0"
-  }
-  egress {
-    rule_no    = 200
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 443
-    to_port    = 443
-    cidr_block = "0.0.0.0/0"
-  }
-  egress {
-    rule_no    = 300
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 3306
-    to_port    = 3306
-    cidr_block = var.vpc_cidr
-  }
-  egress {
-    rule_no    = 400
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 2049
-    to_port    = 2049
-    cidr_block = var.vpc_cidr
-  }
-  egress {
-    rule_no    = 500
-    action     = "allow"
-    protocol   = "tcp"
-    from_port  = 1024
-    to_port    = 65535
-    cidr_block = "0.0.0.0/0"
-  }
-  egress {
-    rule_no    = 600
-    action     = "allow"
-    protocol   = "icmp"
-    from_port  = 0
-    to_port    = 0
-    icmp_type  = -1
-    icmp_code  = -1
-    cidr_block = var.vpc_cidr
-  }
-
-  tags = { Name = "clixx-${var.environment}-private-nacl" }
+resource "aws_db_subnet_group" "mysql" {
+  name       = "clixx-${var.environment}-mysql-subnet-group"
+  subnet_ids = aws_subnet.private_mysql[*].id
+  tags       = { Name = "clixx-${var.environment}-mysql-subnet-group" }
 }
 
-# -----------------------------------------------------------------------------
-# LOCAL VALUES FOR SUBNET IDS
-# -----------------------------------------------------------------------------
-locals {
-  public_subnet_ids  = aws_subnet.public[*].id
-  private_subnet_ids = aws_subnet.private[*].id
+resource "aws_db_subnet_group" "oracle" {
+  name       = "clixx-${var.environment}-oracle-subnet-group"
+  subnet_ids = aws_subnet.private_oracle[*].id
+  tags       = { Name = "clixx-${var.environment}-oracle-subnet-group" }
+}
+
+resource "aws_db_subnet_group" "javadb" {
+  name       = "clixx-${var.environment}-javadb-subnet-group"
+  subnet_ids = aws_subnet.private_javadb[*].id
+  tags       = { Name = "clixx-${var.environment}-javadb-subnet-group" }
 }

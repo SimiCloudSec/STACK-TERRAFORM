@@ -1,59 +1,64 @@
 # =============================================================================
-# OUTPUTS - CLIXX WordPress with Custom VPC
+# OUTPUTS - CliXX WordPress
+# Author: Simi Talabi
 # =============================================================================
 
-output "wordpress_url" {
-  description = "WordPress site URL"
-  value       = "http://${module.route53.fqdn}"
-}
-
-output "alb_dns_name" {
-  description = "ALB DNS name"
-  value       = module.alb.alb_dns
-}
-
-output "rds_endpoint" {
-  description = "RDS endpoint"
-  value       = module.rds.db_endpoint
-}
-
-output "efs_id" {
-  description = "EFS file system ID"
-  value       = module.efs.efs_id
-}
-
-# VPC Outputs
 output "vpc_id" {
-  description = "Custom VPC ID"
+  description = "VPC ID"
   value       = aws_vpc.main.id
 }
 
 output "public_subnet_ids" {
-  description = "Public subnet IDs (ALB)"
-  value       = local.public_subnet_ids
+  description = "Public Subnet IDs"
+  value       = aws_subnet.public[*].id
 }
 
 output "private_subnet_ids" {
-  description = "Private subnet IDs (EC2, RDS, EFS)"
-  value       = local.private_subnet_ids
+  description = "Private Web App Subnet IDs"
+  value       = aws_subnet.private_webapp[*].id
 }
 
-output "nat_gateway_id" {
-  description = "NAT Gateway ID"
-  value       = aws_nat_gateway.main.id
+output "private_mysql_subnet_ids" {
+  description = "Private MySQL Subnet IDs"
+  value       = aws_subnet.private_mysql[*].id
 }
 
-output "internet_gateway_id" {
-  description = "Internet Gateway ID"
-  value       = aws_internet_gateway.main.id
+output "private_oracle_subnet_ids" {
+  description = "Private Oracle Subnet IDs"
+  value       = aws_subnet.private_oracle[*].id
 }
 
-output "public_nacl_id" {
-  description = "Public NACL ID"
-  value       = aws_network_acl.public.id
+output "private_javadb_subnet_ids" {
+  description = "Private Java DB Subnet IDs"
+  value       = aws_subnet.private_javadb[*].id
 }
 
-output "private_nacl_id" {
-  description = "Private NACL ID"
-  value       = aws_network_acl.private.id
+output "private_javaapp_subnet_ids" {
+  description = "Private Java App Subnet IDs"
+  value       = aws_subnet.private_javaapp[*].id
+}
+
+output "nat_gateway_ids" {
+  description = "NAT Gateway IDs"
+  value       = aws_nat_gateway.main[*].id
+}
+
+output "alb_dns_name" {
+  description = "ALB DNS Name"
+  value       = aws_lb.wordpress.dns_name
+}
+
+output "website_url" {
+  description = "WordPress Website URL"
+  value       = "http://${var.environment}.clixx.${var.domain_name}"
+}
+
+output "rds_endpoint" {
+  description = "RDS Endpoint"
+  value       = aws_db_instance.wordpress.endpoint
+}
+
+output "efs_id" {
+  description = "EFS File System ID"
+  value       = aws_efs_file_system.wordpress.id
 }

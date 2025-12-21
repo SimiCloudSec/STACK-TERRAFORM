@@ -305,7 +305,7 @@ resource "aws_lb_listener" "wordpress" {
 
 resource "aws_launch_template" "wordpress" {
   name_prefix   = "clixx-${var.environment}-"
-  image_id      = data.aws_ami.golden_ami.id
+  image_id      = data.aws_ami.amazon_linux_2023.id
   instance_type = var.ec2_config["instance_type"]
 
   vpc_security_group_ids = [aws_security_group.ec2.id]
@@ -314,11 +314,37 @@ resource "aws_launch_template" "wordpress" {
     name = aws_iam_instance_profile.ec2.name
   }
 
-  user_data = base64encode(templatefile("${path.module}/scripts/clixx_bootstrap.sh", {
-    efs_id     = aws_efs_file_system.wordpress.id
-    aws_region = var.aws_region
-    site_url   = "${var.environment}.clixx.${var.domain_name}"
-  }))
+  user_data = base64encode(<<-USERDATA
+    #!/bin/bash
+    yum update -y
+    yum install -y httpd php php-mysqlnd amazon-efs-utils
+
+    # Mount EFS
+    mkdir -p /var/www/html
+    mount -t efs -o tls ${aws_efs_file_system.wordpress.id}:/ /var/www/html
+
+    # Get DB credentials from SSM
+    DB_NAME=$(aws ssm get-parameter --name /clixx/DB_NAME --region ${var.aws_region} --query 'Parameter.Value' --output text)
+    DB_USER=$(aws ssm get-parameter --name /clixx/DB_USER --region ${var.aws_region} --query 'Parameter.Value' --output text)
+    DB_PASS=$(aws ssm get-parameter --name /clixx/DB_PASS --region ${var.aws_region} --with-decryption --query 'Parameter.Value' --output text)
+    DB_HOST=$(aws ssm get-parameter --name /clixx/DB_HOST --region ${var.aws_region} --query 'Parameter.Value' --output text)
+
+    # Update wp-config.php
+    if [ -f /var/www/html/wp-config.php ]; then
+      sed -i "s/define('DB_NAME'.*/define('DB_NAME', '$DB_NAME');/" /var/www/html/wp-config.php
+      sed -i "s/define('DB_USER'.*/define('DB_USER', '$DB_USER');/" /var/www/html/wp-config.php
+      sed -i "s/define('DB_PASSWORD'.*/define('DB_PASSWORD', '$DB_PASS');/" /var/www/html/wp-config.php
+      sed -i "s/define('DB_HOST'.*/define('DB_HOST', '$DB_HOST');/" /var/www/html/wp-config.php
+    fi
+
+    # Update WordPress site URL
+    mysql -h $DB_HOST -u $DB_USER -p$DB_PASS $DB_NAME -e "UPDATE wp_options SET option_value='http://${var.environment}.clixx.${var.domain_name}' WHERE option_name='siteurl' OR option_name='home';"
+
+    # Start Apache
+    systemctl start httpd
+    systemctl enable httpd
+  USERDATA
+  )
 
   tag_specifications {
     resource_type = "instance"
