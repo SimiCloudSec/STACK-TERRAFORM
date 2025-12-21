@@ -3,10 +3,10 @@
 # =============================================================================
 data "aws_ami" "golden_ami" {
   most_recent = true
-  owners      = ["self"]
+  owners      = ["289390529512"]
   filter {
     name   = "name"
-    values = ["stack-ami-*"]
+    values = ["ami-stack-*"]
   }
   filter {
     name   = "virtualization-type"
