@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                slackSend(color: '#FFFF00', message: ":nigeria: Simi - :rocket: STARTING BLOG DEPLOYMENT [${env.BUILD_NUMBER}]")
+                slackSend(color: '#FFFF00', message: "Simi - STARTING BLOG DEPLOYMENT [${env.BUILD_NUMBER}]")
                 checkout scm
             }
         }
@@ -28,10 +28,10 @@ pipeline {
                     script {
                         if (params.ACTION == 'destroy') {
                             sh 'terraform plan -destroy -out=tfplan -input=false'
-                            slackSend(color: '#FF0000', message: ":nigeria: Simi - :fire: DESTROY PLAN READY - BLOG [${env.BUILD_NUMBER}]")
+                            slackSend(color: '#FF0000', message: "Simi - DESTROY PLAN READY - BLOG [${env.BUILD_NUMBER}]")
                         } else {
                             sh 'terraform plan -out=tfplan -input=false'
-                            slackSend(color: '#FFFF00', message: ":nigeria: Simi - :clipboard: APPLY PLAN READY - BLOG [${env.BUILD_NUMBER}]")
+                            slackSend(color: '#FFFF00', message: "Simi - APPLY PLAN READY - BLOG [${env.BUILD_NUMBER}]")
                         }
                     }
                 }
@@ -43,7 +43,7 @@ pipeline {
                 expression { return !params.AUTO_APPROVE }
             }
             steps {
-                slackSend(color: '#FFFF00', message: ":nigeria: Simi - :hourglass: WAITING FOR APPROVAL - BLOG [${env.BUILD_NUMBER}]")
+                slackSend(color: '#FFFF00', message: "Simi - WAITING FOR APPROVAL - BLOG [${env.BUILD_NUMBER}]")
                 input message: "Proceed with ${params.ACTION}?", ok: "Approve"
             }
         }
@@ -59,10 +59,10 @@ pipeline {
 
     post {
         success {
-            slackSend(color: '#00FF00', message: ":nigeria: Simi - :white_check_mark: BLOG ${params.ACTION.toUpperCase()} SUCCESS [${env.BUILD_NUMBER}]")
+            slackSend(color: '#00FF00', message: "Simi - BLOG ${params.ACTION.toUpperCase()} SUCCESS [${env.BUILD_NUMBER}]")
         }
         failure {
-            slackSend(color: '#FF0000', message: ":nigeria: Simi - :x: BLOG ${params.ACTION.toUpperCase()} FAILED [${env.BUILD_NUMBER}]")
+            slackSend(color: '#FF0000', message: "Simi - BLOG ${params.ACTION.toUpperCase()} FAILED [${env.BUILD_NUMBER}]")
         }
     }
 }
