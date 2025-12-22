@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                slackSend(color: '#FFFF00', message: "Simi - STARTING BLOG DEPLOYMENT [${env.BUILD_NUMBER}]")
+                slackSend(color: '#FFFF00', message: ":rocket: STARTING BLOG DEPLOYMENT: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
                 checkout scm
             }
         }
@@ -19,6 +19,7 @@ pipeline {
                 dir('blog') {
                     sh 'terraform init -input=false'
                 }
+                slackSend(color: '#FFFF00', message: ":rocket: TERRAFORM INIT COMPLETE: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
             }
         }
 
@@ -28,13 +29,12 @@ pipeline {
                     script {
                         if (params.ACTION == 'destroy') {
                             sh 'terraform plan -destroy -out=tfplan -input=false'
-                            slackSend(color: '#FF0000', message: "Simi - DESTROY PLAN READY - BLOG [${env.BUILD_NUMBER}]")
                         } else {
                             sh 'terraform plan -out=tfplan -input=false'
-                            slackSend(color: '#FFFF00', message: "Simi - APPLY PLAN READY - BLOG [${env.BUILD_NUMBER}]")
                         }
                     }
                 }
+                slackSend(color: '#FFFF00', message: ":rocket: TERRAFORM PLAN READY: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
             }
         }
 
@@ -43,13 +43,14 @@ pipeline {
                 expression { return !params.AUTO_APPROVE }
             }
             steps {
-                slackSend(color: '#FFFF00', message: "Simi - WAITING FOR APPROVAL - BLOG [${env.BUILD_NUMBER}]")
+                slackSend(color: '#FFFF00', message: ":rocket: WAITING FOR APPROVAL: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL}input)")
                 input message: "Proceed with ${params.ACTION}?", ok: "Approve"
             }
         }
 
         stage('Terraform Apply') {
             steps {
+                slackSend(color: '#FFFF00', message: ":rocket: TERRAFORM ${params.ACTION.toUpperCase()} STARTED: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
                 dir('blog') {
                     sh 'terraform apply -auto-approve tfplan'
                 }
@@ -59,10 +60,10 @@ pipeline {
 
     post {
         success {
-            slackSend(color: '#00FF00', message: "Simi - BLOG ${params.ACTION.toUpperCase()} SUCCESS [${env.BUILD_NUMBER}]")
+            slackSend(color: '#00FF00', message: ":white_check_mark: BLOG ${params.ACTION.toUpperCase()} SUCCESS: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})\nSite: http://dev.blog.stack-simi.com")
         }
         failure {
-            slackSend(color: '#FF0000', message: "Simi - BLOG ${params.ACTION.toUpperCase()} FAILED [${env.BUILD_NUMBER}]")
+            slackSend(color: '#FF0000', message: ":x: BLOG ${params.ACTION.toUpperCase()} FAILED: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
         }
     }
 }
