@@ -1,58 +1,7 @@
-# =============================================================================
-# OUTPUTS - BLOG WordPress with Custom VPC
-# =============================================================================
-
-output "wordpress_url" {
-  description = "WordPress site URL"
-  value       = "http://${var.environment}.blog.${var.domain_name}"
-}
-
-output "alb_dns_name" {
-  description = "ALB DNS name"
-  value       = module.alb.alb_dns
-}
-
-output "rds_endpoint" {
-  description = "RDS endpoint"
-  value       = module.rds.db_endpoint
-}
-
-output "efs_id" {
-  description = "EFS file system ID"
-  value       = module.efs.efs_id
-}
-
-output "vpc_id" {
-  description = "Custom VPC ID"
-  value       = aws_vpc.main.id
-}
-
-output "public_subnet_ids" {
-  description = "Public subnet IDs for ALB"
-  value       = local.public_subnet_ids
-}
-
-output "private_subnet_ids" {
-  description = "Private subnet IDs for EC2 RDS EFS"
-  value       = local.private_subnet_ids
-}
-
-output "nat_gateway_id" {
-  description = "NAT Gateway ID"
-  value       = aws_nat_gateway.main.id
-}
-
-output "internet_gateway_id" {
-  description = "Internet Gateway ID"
-  value       = aws_internet_gateway.main.id
-}
-
-output "public_nacl_id" {
-  description = "Public NACL ID"
-  value       = aws_network_acl.public.id
-}
-
-output "private_nacl_id" {
-  description = "Private NACL ID"
-  value       = aws_network_acl.private.id
-}
+output "website_url" { value = "http://${var.environment}.blog.${var.domain_name}" }
+output "alb_dns_name" { value = aws_lb.wordpress.dns_name }
+output "rds_endpoint" { value = aws_db_instance.wordpress.endpoint }
+output "efs_id" { value = aws_efs_file_system.wordpress.id }
+output "vpc_id" { value = aws_vpc.main.id }
+output "public_subnet_ids" { value = aws_subnet.public[*].id }
+output "private_subnet_ids" { value = aws_subnet.private[*].id }
