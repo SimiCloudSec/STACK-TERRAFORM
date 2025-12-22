@@ -10,11 +10,6 @@ MOUNT_POINT="/var/www/html"
 echo "=== CLiXX Bootstrap Starting ==="
 echo "EFS: $EFS_ID | Region: $REGION | Site: $SITE_URL"
 
-# Install SSM agent for debugging
-yum install -y amazon-ssm-agent 2>/dev/null || dnf install -y amazon-ssm-agent 2>/dev/null
-systemctl enable amazon-ssm-agent
-systemctl start amazon-ssm-agent
-
 # Install packages
 dnf update -y
 dnf install -y httpd php php-mysqli php-json php-gd php-mbstring php-xml \
@@ -24,8 +19,6 @@ systemctl enable --now httpd
 systemctl enable --now crond
 
 # Mount EFS
-echo "Waiting for EFS mount targets..."
-sleep 30
 mkdir -p $${MOUNT_POINT}
 sed -i "\|$${MOUNT_POINT}|d" /etc/fstab
 echo "$${EFS_ID}.efs.$${REGION}.amazonaws.com:/ $${MOUNT_POINT} nfs4 defaults,_netdev 0 0" >> /etc/fstab
