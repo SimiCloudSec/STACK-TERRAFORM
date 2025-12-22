@@ -207,6 +207,17 @@ resource "aws_ssm_parameter" "db_host" {
   type      = "String"
   value     = split(":", aws_db_instance.wordpress.endpoint)[0]
   overwrite = true
+  tags      = { Environment = var.environment }
+}
+
+# =============================================================================
+# EFS FILE SYSTEM
+# =============================================================================
+
+resource "aws_efs_file_system" "wordpress" {
+  creation_token  = "clixx-${var.environment}-efs"
+  encrypted       = true
+  throughput_mode = "bursting"
 
   tags = { Name = "clixx-${var.environment}-efs" }
 }
