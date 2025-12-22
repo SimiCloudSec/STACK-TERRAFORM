@@ -170,52 +170,8 @@ resource "aws_iam_role_policy" "ssm" {
 
 # IAM Instance Profile
 resource "aws_iam_instance_profile" "ec2" {
-
-# Managed policies for SSM and EFS
-resource "aws_iam_role_policy_attachment" "ssm_core" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_role_policy_attachment" "efs_access" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess"
-}
   name = "clixx-${var.environment}-ec2-profile"
-
-# Managed policies for SSM and EFS
-resource "aws_iam_role_policy_attachment" "ssm_core" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_role_policy_attachment" "efs_access" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess"
-}
   role = aws_iam_role.ec2.name
-
-# Managed policies for SSM and EFS
-resource "aws_iam_role_policy_attachment" "ssm_core" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_role_policy_attachment" "efs_access" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess"
-}
-}
-
-# Managed policies for SSM and EFS
-resource "aws_iam_role_policy_attachment" "ssm_core" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_role_policy_attachment" "efs_access" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess"
 }
 
 # =============================================================================
@@ -251,17 +207,6 @@ resource "aws_ssm_parameter" "db_host" {
   type      = "String"
   value     = split(":", aws_db_instance.wordpress.endpoint)[0]
   overwrite = true
-  tags      = { Environment = var.environment }
-}
-
-# =============================================================================
-# EFS FILE SYSTEM
-# =============================================================================
-
-resource "aws_efs_file_system" "wordpress" {
-  creation_token  = "clixx-${var.environment}-efs"
-  encrypted       = true
-  throughput_mode = "bursting"
 
   tags = { Name = "clixx-${var.environment}-efs" }
 }
@@ -325,8 +270,8 @@ resource "aws_lb_target_group" "wordpress" {
     unhealthy_threshold = 2
     timeout             = 5
     interval            = 30
-    path                = "/wp-admin/install.php"
-    matcher             = "200,301,302,403"
+    path                = "/"
+    matcher             = "200,301,302"
   }
 
   tags = { Name = "clixx-${var.environment}-tg" }
@@ -379,7 +324,7 @@ resource "aws_autoscaling_group" "wordpress" {
   target_group_arns   = [aws_lb_target_group.wordpress.arn]
 
   health_check_type         = "ELB"
-  health_check_grace_period = 600
+  health_check_grace_period = var.asg_config["health_check_grace_period"]
 
   launch_template {
     id      = aws_launch_template.wordpress.id
