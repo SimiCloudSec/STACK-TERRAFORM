@@ -527,6 +527,7 @@ resource "aws_autoscaling_group" "wordpress" {
 }
 
 resource "aws_route53_record" "wordpress" {
+  provider = aws.route53
   zone_id = var.hosted_zone_id
   name    = "${var.environment}.blog.${var.domain_name}"
   type    = "A"

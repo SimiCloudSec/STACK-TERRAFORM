@@ -18,7 +18,12 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+}
+
+provider "aws" {
+  alias  = "route53"
+  region = var.aws_region
   assume_role {
-    role_arn = "arn:aws:iam::227764537934:role/TerraformExecutionRole"
+    role_arn = "arn:aws:iam::227764537934:role/Route53CrossAccountRole"
   }
 }
