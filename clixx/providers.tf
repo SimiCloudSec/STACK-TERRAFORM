@@ -8,8 +8,13 @@ terraform {
   }
 }
 
+# Main provider - deploy to Automation account
 provider "aws" {
   region = var.aws_region
+  assume_role {
+    role_arn     = "arn:aws:iam::289390529512:role/Engineer"
+    session_name = "TerraformCLIXX"
+  }
   default_tags {
     tags = {
       Environment = var.environment
@@ -19,11 +24,8 @@ provider "aws" {
   }
 }
 
+# Route53 provider - no assume role, already in Management account
 provider "aws" {
   alias  = "route53"
   region = var.aws_region
-  
-  assume_role {
-    role_arn = "arn:aws:iam::227764537934:role/Route53Access"
-  }
 }
