@@ -8,12 +8,12 @@ terraform {
   }
 }
 
-# Main provider - deploy to Automation account
+# Main provider - Automation account (Jenkins is already here)
 provider "aws" {
   region = var.aws_region
   assume_role {
     role_arn     = "arn:aws:iam::289390529512:role/Engineer"
-    session_name = "TerraformCLIXX"
+    session_name = "TerraformCLiXX"
   }
   default_tags {
     tags = {
@@ -24,8 +24,12 @@ provider "aws" {
   }
 }
 
-# Route53 provider - no assume role, already in Management account
+# Route53 provider - Management account
 provider "aws" {
   alias  = "route53"
   region = var.aws_region
+  assume_role {
+    role_arn     = "arn:aws:iam::227764537934:role/JenkinsDeployRole"
+    session_name = "TerraformCLiXXRoute53"
+  }
 }
