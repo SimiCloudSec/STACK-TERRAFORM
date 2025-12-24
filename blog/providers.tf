@@ -16,8 +16,13 @@ terraform {
   }
 }
 
+# Main provider - Management account
 provider "aws" {
   region = var.aws_region
+  assume_role {
+    role_arn     = "arn:aws:iam::227764537934:role/JenkinsDeployRole"
+    session_name = "TerraformBlog"
+  }
   default_tags {
     tags = {
       Environment = var.environment
@@ -27,7 +32,12 @@ provider "aws" {
   }
 }
 
+# Route53 - same Management account
 provider "aws" {
   alias  = "route53"
   region = var.aws_region
+  assume_role {
+    role_arn     = "arn:aws:iam::227764537934:role/JenkinsDeployRole"
+    session_name = "TerraformBlogRoute53"
+  }
 }
