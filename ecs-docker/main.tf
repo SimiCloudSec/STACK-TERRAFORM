@@ -108,20 +108,11 @@ resource "aws_instance" "docker_build" {
     git clone https://github.com/stackitgit/CliXX_Retail_Repository.git clixx-app
     cd clixx-app
 
-    echo "=== Updating wp-config.php with correct DB credentials ==="
-    WP_CONFIG="wp-config.php"
-    if [ -f "$WP_CONFIG" ]; then
-      sed -i "s|define( *'DB_NAME', *'[^']*' *);|define( 'DB_NAME', '${var.db_name}' );|g" "$WP_CONFIG"
-      sed -i "s|define( *'DB_USER', *'[^']*' *);|define( 'DB_USER', '${var.db_user}' );|g" "$WP_CONFIG"
-      sed -i "s|define( *'DB_PASSWORD', *'[^']*' *);|define( 'DB_PASSWORD', '${var.db_password}' );|g" "$WP_CONFIG"
-      sed -i "s|define( *'DB_HOST', *'[^']*' *);|define( 'DB_HOST', '${var.db_host}' );|g" "$WP_CONFIG"
-      echo "wp-config.php updated with correct DB credentials"
-    fi
-
     echo "=== Creating Dockerfile ==="
     cat > Dockerfile << 'DOCKERFILE'
     FROM wordpress:php8.0-apache
     COPY . /var/www/html/
+    RUN rm -f /var/www/html/wp-config.php
     RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
     EXPOSE 80
     DOCKERFILE
