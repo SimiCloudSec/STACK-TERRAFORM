@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Terraform action')
+        booleanParam(name: 'AUTO_APPROVE', defaultValue: false, description: 'Skip approval')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                slackSend(color: '#FFFF00', message: ":rocket: STARTING CLIXX DEPLOYMENT: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+                checkout scm
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('clixx') {
+                    sh 'terraform init -input=false'
+                }
+                slackSend(color: '#FFFF00', message: ":rocket: TERRAFORM INIT COMPLETE: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('clixx') {
+                    script {
+                        if (params.ACTION == 'destroy') {
+                            sh 'terraform plan -destroy -out=tfplan -input=false'
+                        } else {
+                            sh 'terraform plan -out=tfplan -input=false'
+                        }
+                    }
+                }
+                slackSend(color: '#FFFF00', message: ":rocket: TERRAFORM PLAN READY: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+            }
+        }
+
+        stage('Approval') {
+            when {
+                expression { return !params.AUTO_APPROVE }
+            }
+            steps {
+                slackSend(color: '#FFFF00', message: ":rocket: WAITING FOR APPROVAL: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL}input)")
+                input message: "Proceed with ${params.ACTION}?", ok: "Approve"
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                slackSend(color: '#FFFF00', message: ":rocket: TERRAFORM ${params.ACTION.toUpperCase()} STARTED: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+                dir('clixx') {
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            slackSend(color: '#00FF00', message: ":white_check_mark: CLIXX ${params.ACTION.toUpperCase()} SUCCESS: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})\nSite: http://dev.clixx.stack-simi.com")
+        }
+        failure {
+            slackSend(color: '#FF0000', message: ":x: CLIXX ${params.ACTION.toUpperCase()} FAILED: Job 'SIMI ${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+        }
+    }
+}
